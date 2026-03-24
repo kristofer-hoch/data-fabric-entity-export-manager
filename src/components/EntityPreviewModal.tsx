@@ -44,7 +44,7 @@ export function EntityPreviewModal({ entity, onClose }: EntityPreviewModalProps)
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="p-2 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>
