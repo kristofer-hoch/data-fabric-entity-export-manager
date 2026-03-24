@@ -2,7 +2,7 @@
 
 A professional enterprise application for UiPath Data Fabric that enables users to browse, select, and export entity data to CSV files. Built with React, TypeScript, and the UiPath SDK, this tool provides a clean, table-based interface for discovering available entities, previewing their schemas and records, selecting multiple entities for batch export, and downloading individual or combined CSV files.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kristofer-hoch/data-fabric-entity-export-manager)
 
 ## Features
 
@@ -197,7 +197,7 @@ The application follows a modular architecture:
 
 ### Deploy to Cloudflare Pages
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kristofer-hoch/data-fabric-entity-export-manager)
 
 **Manual Deployment:**
 
