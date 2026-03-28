@@ -2,8 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-export default defineConfig({
-  base: './',
+export default defineConfig(({ command }) => ({
+  appType: 'spa',
+  base: command === 'serve' ? '/' : './',
   plugins: [react()],
   resolve: {
     alias: {
@@ -13,6 +14,12 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
     allowedHosts: true,
   },
-});
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+  },
+}));

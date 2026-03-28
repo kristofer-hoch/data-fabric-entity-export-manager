@@ -1,0 +1,22 @@
+{
+  "authconfigs": [
+    {
+      "VITE_UIPATH_APP_URL": {
+        "VITE_UIPATH_ORG_NAME": {
+          "urlBase": "VITE_UIPATH_BASE_URL",
+          "tenants": [
+            "VITE_UIPATH_TENANT_NAME"
+          ],
+          "externalApps": [
+            {
+              "name": "VITE_UIPATH_EXTERNAL_APP_NAME",
+              "clientId": "VITE_UIPATH_CLIENT_ID",
+              "scope": "VITE_UIPATH_SCOPE",
+              "urlAppRedirect": "VITE_UIPATH_REDIRECT_URI"
+            }
+          ]
+        }
+      }     
+    }
+  ]
+}

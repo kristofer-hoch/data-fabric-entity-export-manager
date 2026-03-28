@@ -65,7 +65,7 @@ bun install
 Create or update the `.env` file in the project root:
 
 ```env
-VITE_UIPATH_BASE_URL=https://api.uipath.com
+VITE_UIPATH_BASE_URL=https://cloud.uipath.com
 VITE_UIPATH_ORG_NAME=your-org-name
 VITE_UIPATH_TENANT_NAME=your-tenant-name
 VITE_UIPATH_CLIENT_ID=your-client-id
