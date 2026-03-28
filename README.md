@@ -70,7 +70,7 @@ VITE_UIPATH_ORG_NAME=your-org-name
 VITE_UIPATH_TENANT_NAME=your-tenant-name
 VITE_UIPATH_CLIENT_ID=your-client-id
 VITE_UIPATH_REDIRECT_URI=http://localhost:3000
-VITE_UIPATH_SCOPE=DataFabric.Schema.Read DataFabric.Data.Read
+VITE_UIPATH_SCOPE=DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Write
 ```
 
 **Getting OAuth Credentials:**
@@ -82,6 +82,7 @@ VITE_UIPATH_SCOPE=DataFabric.Schema.Read DataFabric.Data.Read
 5. Grant the following scopes:
    - `DataFabric.Schema.Read` - Read entity schemas
    - `DataFabric.Data.Read` - Read entity records
+   - `DataFabric.Data.Write` - Write entity records
 6. Copy the **Client ID** to your `.env` file
 
 ### 4. Start Development Server
@@ -169,6 +170,8 @@ src/
 - `downloadCSV(content, filename)` - Triggers browser download
 
 ### Available Scripts
+
+In some cases `bun` will not be found. Work around that issue by prefixing either `npm` or `npx` to the command. For example, `bun run dev` becomes `npx bun run dev`.
 
 ```bash
 # Start development server (port 3000)
@@ -273,7 +276,7 @@ Connect your repository to Cloudflare Pages for automatic deployments:
 
 **Solution:**
 - Verify the entity has data in Data Fabric
-- Check that `DataFabric.Data.Read` scope is granted
+- Check that `DataFabric.Schema.Read`, `DataFabric.Data.Read`, and `DataFabric.Data.Write` scopes are granted
 - Try refreshing the entity list
 
 ## License
@@ -285,3 +288,5 @@ This project is provided as-is for use with UiPath Data Fabric.
 For issues related to:
 - **UiPath SDK or Data Fabric** - Contact UiPath Support
 - **Application bugs or features** - Open an issue in this repository
+
+

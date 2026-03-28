@@ -1,12 +1,15 @@
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Loader2, PlugZap } from 'lucide-react';
 import { ConnectionManager } from '@/components/ConnectionManager';
 import { EntityBrowser } from '@/components/EntityBrowser';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 
 export function HomePage() {
   const { isAuthenticated, isInitializing, login, error, activeAuthConfig } = useAuth();
+  const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(true);
 
   if (isInitializing) {
     return (
@@ -56,7 +59,34 @@ export function HomePage() {
     <AppLayout>
       <div className="space-y-4">
         <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
-          <ConnectionManager compact />
+          <Collapsible open={isConnectionManagerOpen} onOpenChange={setIsConnectionManagerOpen}>
+            <div className="overflow-hidden rounded-xl border bg-card/90 shadow-sm backdrop-blur">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                >
+                  <div className="flex items-center gap-2">
+                    <PlugZap className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Connection Settings</p>
+                      <p className="text-xs text-muted-foreground">
+                        Review or change the selected organization, tenant, and auth config.
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isConnectionManagerOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="border-t px-4 py-4">
+                  <ConnectionManager compact />
+                </div>
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
         </div>
         <EntityBrowser />
       </div>

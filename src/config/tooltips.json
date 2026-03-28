@@ -7,7 +7,7 @@
         "externalApps": {
             "name": "The name of the external application registered in UiPath.",
             "clientId": "The client ID of the external application.",
-            "scope": "The scopes/permissions required for the external application.", 
+            "scope": "The scopes/permissions required for the external application. Minimum: DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Write.", 
             "urlAppRedirect": "The redirect URI registered in your UiPath app. For example: http://localhost:3000"
         }
     }

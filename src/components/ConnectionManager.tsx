@@ -3,6 +3,7 @@ import { ChevronDown, CircleHelp, Pencil, Plus, PlugZap, RotateCcw, Trash2 } fro
 import { useAuth } from '@/hooks/useAuth';
 import { tooltip } from '@/config/tooltip';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { deriveBaseUrl, getMissingRequiredScopes, REQUIRED_DATA_FABRIC_SCOPES } from '@/config/authConfig';
 import type { AuthConfigExternalAppInput, StoredAuthConfig } from '@/config/authConfig';
 
 type ConnectionManagerProps = {
@@ -21,7 +23,6 @@ type AuthConfigFormState = {
     organization: string;
     tenants: string;
     urlApp: string;
-    urlBase: string;
     externalApps: AuthConfigExternalAppInput[];
 };
 
@@ -38,10 +39,12 @@ type LabelWithTooltipProps = {
     tooltipText?: string;
 };
 
+const REQUIRED_SCOPE_TEXT = REQUIRED_DATA_FABRIC_SCOPES.join(' ');
+
 const EMPTY_EXTERNAL_APP: AuthConfigExternalAppInput = {
     name: '',
     clientId: '',
-    scope: '',
+    scope: REQUIRED_SCOPE_TEXT,
     urlAppRedirect: '',
 };
 
@@ -49,7 +52,6 @@ const EMPTY_FORM: AuthConfigFormState = {
     organization: '',
     tenants: '',
     urlApp: '',
-    urlBase: '',
     externalApps: [{ ...EMPTY_EXTERNAL_APP }],
 };
 
@@ -135,11 +137,25 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
     const [selectedAuthConfigName, setSelectedAuthConfigName] = useState('');
     const [expandedAuthConfigs, setExpandedAuthConfigs] = useState<boolean[]>([true]);
 
+    const externalAppScopeIssues = useMemo(
+        () => form.externalApps.map((externalApp) => (
+            externalApp.clientId.trim().length > 0 ? getMissingRequiredScopes(externalApp.scope) : []
+        )),
+        [form.externalApps],
+    );
+
+    const derivedBaseUrl = useMemo(
+        () => deriveBaseUrl(form.urlApp),
+        [form.urlApp],
+    );
+
     const canSave = useMemo(
-        () => [form.organization, form.urlApp, form.urlBase].every((value) => value.trim().length > 0)
+        () => [form.organization, form.urlApp].every((value) => value.trim().length > 0)
+            && derivedBaseUrl.length > 0
             && parseTenants(form.tenants).length > 0
-            && form.externalApps.some((externalApp) => externalApp.clientId.trim().length > 0),
-        [form],
+            && form.externalApps.some((externalApp) => externalApp.clientId.trim().length > 0)
+            && externalAppScopeIssues.every((missingScopes) => missingScopes.length === 0),
+        [derivedBaseUrl, externalAppScopeIssues, form],
     );
 
     const organizationOptions = useMemo(
@@ -187,7 +203,6 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                 organization: activeAuthConfigGroup.organization,
                 tenants: activeAuthConfigGroup.tenants.join('\n'),
                 urlApp: activeAuthConfigGroup.urlApp,
-                urlBase: activeAuthConfigGroup.urlBase,
                 externalApps: activeAuthConfigGroup.externalApps.length
                     ? activeAuthConfigGroup.externalApps.map((externalApp) => ({ ...externalApp }))
                     : [{ ...EMPTY_EXTERNAL_APP }],
@@ -289,7 +304,7 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
             organization: form.organization.trim(),
             tenants: parseTenants(form.tenants),
             urlApp: form.urlApp.trim(),
-            urlBase: form.urlBase.trim(),
+            urlBase: deriveBaseUrl(form.urlApp),
             externalApps: form.externalApps.map((externalApp) => ({
                 name: externalApp.name.trim(),
                 clientId: externalApp.clientId.trim(),
@@ -306,6 +321,7 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
 
         setForm(EMPTY_FORM);
         setExpandedAuthConfigs([true]);
+        setOpen(false);
     };
 
     const handleResetConnections = () => {
@@ -333,7 +349,26 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
 
     const handleTenantChange = (tenant: string) => {
         setSelectedTenant(tenant);
-        setSelectedAuthConfigName('');
+
+        const preferredAuthConfigName = selectedAuthConfigName || activeAuthConfig?.name;
+        if (!preferredAuthConfigName) {
+            selectAuthConfig(null);
+            return;
+        }
+
+        const nextConfig = authConfigs.find(
+            (config) => config.urlApp === selectedOrganization?.urlApp
+                && config.organization === selectedOrganization?.organization
+                && config.tenant === tenant
+                && config.name === preferredAuthConfigName,
+        );
+
+        if (nextConfig) {
+            setSelectedAuthConfigName(nextConfig.name);
+            selectAuthConfig(nextConfig.id);
+            return;
+        }
+
         selectAuthConfig(null);
     };
 
@@ -400,10 +435,10 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="auth-config-select">Auth Config</Label>
+                            <Label htmlFor="auth-config-select">Non-Confidential External Application Config</Label>
                             <Select value={selectedAuthConfigName || undefined} onValueChange={handleAuthConfigChange} disabled={!selectedOrganization || !selectedTenant}>
                                 <SelectTrigger id="auth-config-select" className="w-full">
-                                    <SelectValue placeholder="Select an auth config" />
+                                    <SelectValue placeholder="Select a non-confidential external application config" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {availableAuthConfigs.map((config) => (
@@ -422,12 +457,13 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                         <p>{activeAuthConfig.urlApp}/{activeAuthConfig.organization}/{activeAuthConfig.tenant}</p>
                         <p>{activeAuthConfig.name}</p>
                         <p>Client Id: {activeAuthConfig.clientId}</p>
+                        <p>Base URL: {activeAuthConfig.urlBase}</p>
                         <p>Scope: {activeAuthConfig.scope}</p>
                         <p>Redirect Uri: {activeAuthConfig.urlAppRedirect}</p>
                     </div>
                 ) : (
                     <p className="text-xs text-muted-foreground">
-                        Authentication will stay disabled until you select an organization, a tenant, and an auth config.
+                        Authentication will stay disabled until you select an organization, a tenant, and a non-confidential external application config.
                     </p>
                 )}
 
@@ -456,6 +492,9 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                                     <div className="space-y-2 sm:col-span-3">
                                         <LabelWithTooltip htmlFor="url-app" label="App URL" tooltipText={tooltip.connectionEditor.urlApp} />
                                         <Input id="url-app" value={form.urlApp} onChange={(event) => handleFieldChange('urlApp', event.target.value)} />
+                                        <p className="text-xs text-muted-foreground">
+                                            {derivedBaseUrl ? `Derived Base URL: ${derivedBaseUrl}` : 'Supported App URLs map to alpha, staging, or cloud UiPath environments.'}
+                                        </p>
                                     </div>
 
                                     <div className="space-y-2 sm:col-span-2">
@@ -474,27 +513,32 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                                         />
                                     </div>
 
-                                    <div className="space-y-2 sm:col-span-2">
-                                        <LabelWithTooltip htmlFor="base-url" label="Base URL" tooltipText={tooltip.connectionEditor.urlBase} />
-                                        <Input id="base-url" value={form.urlBase} onChange={(event) => handleFieldChange('urlBase', event.target.value)} />
-                                    </div>
                                 </div>
 
                                 <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="space-y-1">
-                                            <h3 className="text-sm font-medium">Authorization Configuration</h3>
-                                            <p className="text-xs text-muted-foreground">Configure one or more external apps used for OAuth authentication.</p>
-                                        </div>
+                                    <div className="space-y-1">
+                                        <h3 className="text-sm font-medium">Non-Confidential External Application Config</h3>
+                                        <p className="text-xs text-muted-foreground">Configure one or more external apps used for OAuth authentication.</p>
+                                        <p className="text-xs text-muted-foreground">Minimum scopes: {REQUIRED_DATA_FABRIC_SCOPES.join(', ')}</p>
+                                    </div>
+
+                                    <div>
                                         <Button type="button" variant="outline" size="sm" onClick={handleAddExternalApp}>
                                             <Plus />
-                                            Add Auth Config
+                                            Add Non-Confidential External Application Config
                                         </Button>
                                     </div>
 
                                     <div className="space-y-4">
+                                        {externalAppScopeIssues.some((missingScopes) => missingScopes.length > 0) ? (
+                                            <Alert variant="destructive">
+                                                <AlertDescription>
+                                                    Each non-confidential external application config must include these scopes at minimum: {REQUIRED_DATA_FABRIC_SCOPES.join(', ')}.
+                                                </AlertDescription>
+                                            </Alert>
+                                        ) : null}
                                         {form.externalApps.map((externalApp, index) => {
-                                            const authConfigTitle = externalApp.name.trim() || `Auth Config ${index + 1}`;
+                                            const authConfigTitle = externalApp.name.trim() || `Non-Confidential External Application Config ${index + 1}`;
                                             const isOpen = expandedAuthConfigs[index] ?? false;
 
                                             return (
@@ -503,7 +547,7 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                                                         <div className="flex items-center justify-between gap-4">
                                                             <CollapsibleTrigger asChild>
                                                                 <button type="button" className="flex flex-1 items-center justify-between gap-3 text-left">
-                                                                    <h4 className="text-sm font-medium">Auth Config: {authConfigTitle}</h4>
+                                                                    <h4 className="text-sm font-medium">Non-Confidential External Application Config: {authConfigTitle}</h4>
                                                                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                                                                 </button>
                                                             </CollapsibleTrigger>
@@ -547,7 +591,13 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                                                                         value={externalApp.scope}
                                                                         onChange={(event) => handleExternalAppChange(index, 'scope', event.target.value)}
                                                                         rows={4}
+                                                                        placeholder={REQUIRED_SCOPE_TEXT}
                                                                     />
+                                                                    {externalAppScopeIssues[index]?.length ? (
+                                                                        <p className="text-xs text-destructive">
+                                                                            Missing required scopes: {externalAppScopeIssues[index].join(', ')}
+                                                                        </p>
+                                                                    ) : null}
                                                                 </div>
 
                                                                 <div className="space-y-2 sm:col-span-2">
@@ -616,10 +666,13 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                     Connection Settings
                 </CardTitle>
                 <CardDescription>
-                    Choose an organization, tenant, and auth config before signing in, or add and edit connections with multiple tenants.
+                    Choose an organization, tenant, and non-confidential external application config before signing in, or add and edit connections with multiple tenants.
                 </CardDescription>
             </CardHeader>
             <CardContent>{content}</CardContent>
         </Card>
     );
 }
+
+
+

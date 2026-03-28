@@ -1,5 +1,17 @@
 import authConfigJson from './auth.config.json';
 
+export const REQUIRED_DATA_FABRIC_SCOPES = [
+    'DataFabric.Schema.Read',
+    'DataFabric.Data.Read',
+    'DataFabric.Data.Write',
+] as const;
+
+const BASE_URL_RULES = [
+    { startsWith: 'https://alpha.uipath.com', baseUrl: 'https://alpha.api.uipath.com' },
+    { startsWith: 'https://staging.uipath.com', baseUrl: 'https://staging.api.uipath.com' },
+    { startsWith: 'https://cloud.uipath.com', baseUrl: 'https://api.uipath.com' },
+] as const;
+
 export interface AuthConfigExternalAppInput {
     name: string;
     clientId: string;
@@ -65,6 +77,30 @@ const authConfig = authConfigJson as AuthConfigFile;
 const CUSTOM_AUTH_CONFIGS_STORAGE_KEY = 'uipath-custom-auth-configs';
 const ACTIVE_AUTH_CONFIG_STORAGE_KEY = 'uipath-active-auth-config-id';
 const ENV_KEY_PATTERN = /^VITE_[A-Z0-9_]+$/;
+
+export function parseScopes(scope: string): string[] {
+    return Array.from(
+        new Set(
+            scope
+                .split(/\s+/)
+                .map((value) => value.trim())
+                .filter(Boolean),
+        ),
+    );
+}
+
+export function getMissingRequiredScopes(scope: string): string[] {
+    const configuredScopes = new Set(parseScopes(scope));
+
+    return REQUIRED_DATA_FABRIC_SCOPES.filter((requiredScope) => !configuredScopes.has(requiredScope));
+}
+
+export function deriveBaseUrl(urlApp: string): string {
+    const normalizedUrlApp = urlApp.trim().toLowerCase();
+    const matchedRule = BASE_URL_RULES.find((rule) => normalizedUrlApp.startsWith(rule.startsWith));
+
+    return matchedRule?.baseUrl ?? '';
+}
 
 function buildConfigName(config: { organization: string; tenants?: string[]; tenant?: string; clientId: string }): string {
     const tenantLabel = config.tenant || config.tenants?.[0] || '';
@@ -133,7 +169,7 @@ function getMappedAuthConfigGroups(source: 'bundled' | 'custom'): StoredAuthConf
             return Object.entries(organizationGroup).flatMap(([organizationKey, config], organizationIndex) => {
                 const organization = readEnvValue(organizationKey);
                 const tenants = sanitizeTenants((config.tenants ?? []).map((tenant) => readEnvValue(tenant)));
-                const urlBase = readEnvValue(config.urlBase);
+                const urlBase = deriveBaseUrl(urlApp);
                 const externalApps = sanitizeExternalApps(
                     (config.externalApps ?? []).map((externalApp) => ({
                         name: readEnvValue(externalApp.name),
@@ -220,7 +256,7 @@ function normalizeStoredCustomGroup(config: StoredAuthConfigGroup | LegacyStored
             organization: config.organization,
             tenants: sanitizeTenants(config.tenants ?? []),
             urlApp: config.urlApp,
-            urlBase: config.urlBase,
+            urlBase: deriveBaseUrl(config.urlApp),
             externalApps,
         };
     }
@@ -237,7 +273,7 @@ function normalizeStoredCustomGroup(config: StoredAuthConfigGroup | LegacyStored
         organization: config.organization,
         tenants: sanitizeTenants([tenant]),
         urlApp: config.urlApp,
-        urlBase: config.urlBase,
+        urlBase: deriveBaseUrl(config.urlApp),
         externalApps: [{
             name: config.name?.trim() || buildConfigName({ organization: config.organization, tenant, clientId }),
             clientId,
@@ -352,6 +388,7 @@ export function addCustomAuthConfig(config: NewAuthConfigInput): StoredAuthConfi
     const nextGroup: StoredAuthConfigGroup = {
         ...config,
         tenants: sanitizeTenants(config.tenants),
+        urlBase: deriveBaseUrl(config.urlApp),
         externalApps: sanitizeExternalApps(config.externalApps),
         id: `custom-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString()}`,
         source: 'custom',
@@ -367,6 +404,7 @@ export function updateCustomAuthConfig(groupId: string, config: NewAuthConfigInp
     const nextGroup: StoredAuthConfigGroup = {
         ...config,
         tenants: sanitizeTenants(config.tenants),
+        urlBase: deriveBaseUrl(config.urlApp),
         externalApps: sanitizeExternalApps(config.externalApps),
         id: groupId,
         source: 'custom',
@@ -389,3 +427,8 @@ export function getPrimaryAuthConfig(): StoredAuthConfig {
 
     return primaryConfig;
 }
+
+
+
+
+
