@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { ChevronDown, CircleHelp, Pencil, Plus, PlugZap, RotateCcw, Trash2, X } from 'lucide-react';
+import { ChevronDown, CircleHelp, Pencil, Plus, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { tooltip } from '@/config/tooltip';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -16,10 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { deriveBaseUrl, getMissingRequiredScopes, REQUIRED_DATA_FABRIC_SCOPES } from '@/config/authConfig';
 import type { AuthConfigExternalAppInput, StoredAuthConfig } from '@/config/authConfig';
-
-type ConnectionManagerProps = {
-    compact?: boolean;
-};
 
 type AuthConfigFormState = {
     organization: string;
@@ -121,7 +116,7 @@ function LabelWithTooltip({ htmlFor, label, tooltipText }: LabelWithTooltipProps
     );
 }
 
-export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
+export function ConnectionManager() {
     const {
         authConfigs,
         activeAuthConfig,
@@ -714,25 +709,5 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
         </TooltipProvider>
     );
 
-    if (compact) {
-        return <div className="rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur">{content}</div>;
-    }
-
-    return (
-        <Card>
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <PlugZap className="h-4 w-4" />
-                    Connection Settings
-                </CardTitle>
-                <CardDescription>
-                    Choose an organization, tenant, and non-confidential external application config before signing in, or add and edit connections with multiple tenants.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>{content}</CardContent>
-        </Card>
-    );
+    return <div className="rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur">{content}</div>;
 }
-
-
-

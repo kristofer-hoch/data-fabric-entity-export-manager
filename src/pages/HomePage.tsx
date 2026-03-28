@@ -42,7 +42,7 @@ export function HomePage() {
               </p>
             </div>
 
-            <ConnectionManager compact />
+            <ConnectionManager />
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -88,7 +88,7 @@ export function HomePage() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="border-t px-4 py-4">
-                  <ConnectionManager compact />
+                  <ConnectionManager />
                 </div>
               </CollapsibleContent>
             </div>
