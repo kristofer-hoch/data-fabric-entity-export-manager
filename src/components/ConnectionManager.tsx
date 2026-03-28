@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, CircleHelp, Pencil, Plus, PlugZap, RotateCcw, Trash2 } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
+import { ChevronDown, CircleHelp, Pencil, Plus, PlugZap, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { tooltip } from '@/config/tooltip';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -132,6 +134,7 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState<'add' | 'edit'>('add');
     const [form, setForm] = useState<AuthConfigFormState>(EMPTY_FORM);
+    const [tenantDraft, setTenantDraft] = useState('');
     const [selectedOrganizationKey, setSelectedOrganizationKey] = useState('');
     const [selectedTenant, setSelectedTenant] = useState('');
     const [selectedAuthConfigName, setSelectedAuthConfigName] = useState('');
@@ -189,6 +192,11 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
         [authConfigs, selectedOrganization, selectedTenant],
     );
 
+    const tenantValues = useMemo(
+        () => parseTenants(form.tenants),
+        [form.tenants],
+    );
+
     useEffect(() => {
         setExpandedAuthConfigs((current) => form.externalApps.map((_, index) => current[index] ?? index === form.externalApps.length - 1));
     }, [form.externalApps.length]);
@@ -210,11 +218,13 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
             setExpandedAuthConfigs(activeAuthConfigGroup.externalApps.length
                 ? activeAuthConfigGroup.externalApps.map((_, index) => index === 0)
                 : [true]);
+            setTenantDraft('');
             return;
         }
 
         setForm(EMPTY_FORM);
         setExpandedAuthConfigs([true]);
+        setTenantDraft('');
     }, [activeAuthConfigGroup, mode, open]);
 
     useEffect(() => {
@@ -262,6 +272,36 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                 externalAppIndex === index ? { ...externalApp, [field]: value } : externalApp
             )),
         }));
+    };
+
+    const updateTenantValues = (tenants: string[]) => {
+        handleFieldChange('tenants', tenants.join('\n'));
+    };
+
+    const commitTenantDraft = () => {
+        if (!tenantDraft.trim()) {
+            return;
+        }
+
+        updateTenantValues(parseTenants([...tenantValues, tenantDraft].join('\n')));
+        setTenantDraft('');
+    };
+
+    const handleTenantKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            commitTenantDraft();
+            return;
+        }
+
+        if (event.key === 'Backspace' && tenantDraft.length === 0 && tenantValues.length > 0) {
+            event.preventDefault();
+            updateTenantValues(tenantValues.slice(0, -1));
+        }
+    };
+
+    const handleRemoveTenant = (tenantToRemove: string) => {
+        updateTenantValues(tenantValues.filter((tenant) => tenant !== tenantToRemove));
     };
 
     const handleAddExternalApp = () => {
@@ -320,6 +360,7 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
         }
 
         setForm(EMPTY_FORM);
+        setTenantDraft('');
         setExpandedAuthConfigs([true]);
         setOpen(false);
     };
@@ -502,15 +543,34 @@ export function ConnectionManager({ compact = false }: ConnectionManagerProps) {
                                         <Input id="organization" value={form.organization} onChange={(event) => handleFieldChange('organization', event.target.value)} />
                                     </div>
 
-                                    <div className="space-y-2 sm:col-span-3">
+                                    <div className="space-y-2 sm:col-span-5">
                                         <LabelWithTooltip htmlFor="tenants" label="Tenants" tooltipText={tooltip.connectionEditor.tenants} />
-                                        <Textarea
-                                            id="tenants"
-                                            value={form.tenants}
-                                            onChange={(event) => handleFieldChange('tenants', event.target.value)}
-                                            rows={4}
-                                            placeholder="Enter one tenant per line or separate with commas"
-                                        />
+                                        <div className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                                            <div className="flex min-h-16 w-full flex-wrap items-start gap-2">
+                                                {tenantValues.map((tenant) => (
+                                                    <Badge key={tenant} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                                                        <span>{tenant}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+                                                            onClick={() => handleRemoveTenant(tenant)}
+                                                            aria-label={`Remove tenant ${tenant}`}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                                <Input
+                                                    id="tenants"
+                                                    value={tenantDraft}
+                                                    onChange={(event) => setTenantDraft(event.target.value)}
+                                                    onKeyDown={handleTenantKeyDown}
+                                                    onBlur={commitTenantDraft}
+                                                    className="h-8 min-w-[12rem] flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                                                    placeholder={tenantValues.length === 0 ? 'Type a tenant and press Enter or comma' : 'Add another tenant'}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
                                 </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, Loader2, PlugZap } from 'lucide-react';
 import { ConnectionManager } from '@/components/ConnectionManager';
 import { EntityBrowser } from '@/components/EntityBrowser';
@@ -10,6 +10,12 @@ import { useAuth } from '@/hooks/useAuth';
 export function HomePage() {
   const { isAuthenticated, isInitializing, login, error, activeAuthConfig } = useAuth();
   const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsConnectionManagerOpen(false);
+    }
+  }, [isAuthenticated]);
 
   if (isInitializing) {
     return (
