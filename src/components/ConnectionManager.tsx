@@ -512,7 +512,7 @@ export function ConnectionManager() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent
-                            className="max-w-3xl"
+                            className="max-h-[90vh] max-w-3xl overflow-y-auto"
                             onInteractOutside={(event) => event.preventDefault()}
                             onEscapeKeyDown={(event) => event.preventDefault()}
                         >
