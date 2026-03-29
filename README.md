@@ -2,8 +2,6 @@
 
 A professional enterprise application for UiPath Data Fabric that enables users to browse, select, and export entity data to CSV files. Built with React, TypeScript, and the UiPath SDK, this tool provides a clean, table-based interface for discovering available entities, previewing their schemas and records, selecting multiple entities for batch export, and downloading individual or combined CSV files.
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kristofer-hoch/data-fabric-entity-export-manager)
-
 ## Features
 
 - **Entity Browser**: View all available Data Fabric entities in a clean, information-dense table layout
@@ -195,47 +193,6 @@ The application follows a modular architecture:
 2. **New Hooks** - Add to `src/hooks/`
 3. **New Utilities** - Add to `src/utils/`
 4. **Styling** - Use Tailwind utility classes and shadcn/ui components
-
-## Deployment
-
-### Deploy to Cloudflare Pages
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kristofer-hoch/data-fabric-entity-export-manager)
-
-**Manual Deployment:**
-
-1. **Build the application:**
-   ```bash
-   bun run build
-   ```
-
-2. **Deploy to Cloudflare Pages:**
-   ```bash
-   bunx wrangler pages deploy dist
-   ```
-
-3. **Configure environment variables** in Cloudflare Pages dashboard:
-   - `VITE_UIPATH_BASE_URL`
-   - `VITE_UIPATH_ORG_NAME`
-   - `VITE_UIPATH_TENANT_NAME`
-   - `VITE_UIPATH_CLIENT_ID`
-   - `VITE_UIPATH_REDIRECT_URI` (set to your Cloudflare Pages URL)
-   - `VITE_UIPATH_SCOPE`
-
-4. **Update OAuth redirect URI** in UiPath Cloud to match your Cloudflare Pages URL
-
-### Continuous Deployment
-
-Connect your repository to Cloudflare Pages for automatic deployments:
-
-1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Navigate to **Pages** → **Create a project**
-3. Connect your Git repository
-4. Configure build settings:
-   - **Build command:** `bun run build`
-   - **Build output directory:** `dist`
-5. Add environment variables
-6. Deploy
 
 ## Browser Support
 

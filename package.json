@@ -1,7 +1,7 @@
 {
-  "name": "data-fabric-export-m-cdpqsgefsib1v_0tw1gb4",
+  "name": "data-fabric-export-manager",
   "private": true,
-  "version": "0.0.0",
+  "version": "2026.3.28",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",

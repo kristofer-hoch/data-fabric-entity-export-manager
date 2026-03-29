@@ -11,3 +11,5 @@ release/
 
 # VS Code
 .vscode/
+
+.env*local*

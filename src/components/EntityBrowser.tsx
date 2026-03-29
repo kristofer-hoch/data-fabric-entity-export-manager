@@ -1,20 +1,21 @@
-import React, { useState, useMemo } from 'react';
-import { Download, Eye, Loader2, AlertCircle, FileText } from 'lucide-react';
-import { useEntities } from '@/hooks/useEntities';
-import { EntityPreviewModal } from '@/components/EntityPreviewModal';
-import { downloadCSV, convertToCSV } from '@/utils/csvExport';
-import { toast } from '@/components/ui/sonner';
-import { Toaster } from '@/components/ui/sonner';
-import type { EntityGetResponse } from '@uipath/uipath-typescript/entities';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
+import { AlertCircle, Download, Eye, FileText, Loader2 } from 'lucide-react';
+import type { EntityGetResponse } from '@uipath/uipath-typescript/entities';
+import { EntityPreviewModal } from '@/components/EntityPreviewModal';
+import { Toaster, toast } from '@/components/ui/sonner';
+import { useEntities } from '@/hooks/useEntities';
+import { convertToCSV, downloadCSV } from '@/utils/csvExport';
+
 export function EntityBrowser() {
   const { entities, isLoading, error, refetch } = useEntities();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewEntity, setPreviewEntity] = useState<EntityGetResponse | null>(null);
   const [exportingIds, setExportingIds] = useState<Set<string>>(new Set());
   const [isBatchExporting, setIsBatchExporting] = useState(false);
+
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -24,97 +25,109 @@ export function EntityBrowser() {
       return next;
     });
   };
+
   const toggleSelectAll = () => {
     if (selectedIds.size === entities.length) {
       setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(entities.map(e => e.id)));
+      return;
     }
+
+    setSelectedIds(new Set(entities.map((entity) => entity.id)));
   };
+
   const exportEntity = async (entity: EntityGetResponse) => {
-    setExportingIds(prev => new Set(prev).add(entity.id));
+    setExportingIds((prev) => new Set(prev).add(entity.id));
+
     try {
       const result = await entity.getAllRecords();
       const records = result.items || [];
+      const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+
       if (records.length === 0) {
-        const headers = entity.fields?.map(f => f.name).join(',') || '';
-        const csv = headers;
-        const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-        downloadCSV(csv, filename);
+        const headers = entity.fields?.map((field) => field.name).join(',') || '';
+        downloadCSV(headers, filename);
         toast.success(`Exported ${entity.displayName || entity.name}`, {
-          description: 'No records found - exported headers only',
+          description: 'No records found. Exported headers only.',
         });
-      } else {
-        const fieldNames = entity.fields?.map(f => f.name) || [];
-        const csv = convertToCSV(records, fieldNames);
-        const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-        downloadCSV(csv, filename);
-        toast.success(`Exported ${entity.displayName || entity.name}`, {
-          description: `${records.length} record${records.length !== 1 ? 's' : ''} exported`,
-        });
+        return;
       }
+
+      const fieldNames = entity.fields?.map((field) => field.name) || [];
+      const csv = convertToCSV(records, fieldNames);
+      downloadCSV(csv, filename);
+      toast.success(`Exported ${entity.displayName || entity.name}`, {
+        description: `${records.length} record${records.length !== 1 ? 's' : ''} exported.`,
+      });
     } catch (err) {
       console.error('Export error:', err);
       toast.error('Export failed', {
-        description: err instanceof Error ? err.message : 'Failed to export entity data',
+        description: err instanceof Error ? err.message : 'Failed to export entity data.',
       });
     } finally {
-      setExportingIds(prev => {
+      setExportingIds((prev) => {
         const next = new Set(prev);
         next.delete(entity.id);
         return next;
       });
     }
   };
+
   const exportSelected = async () => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0) {
+      return;
+    }
+
     setIsBatchExporting(true);
-    const selectedEntities = entities.filter(e => selectedIds.has(e.id));
+    const selectedEntities = entities.filter((entity) => selectedIds.has(entity.id));
     let successCount = 0;
     let failCount = 0;
+
     for (const entity of selectedEntities) {
       try {
         const result = await entity.getAllRecords();
         const records = result.items || [];
-        const fieldNames = entity.fields?.map(f => f.name) || [];
+        const fieldNames = entity.fields?.map((field) => field.name) || [];
         const csv = records.length > 0 ? convertToCSV(records, fieldNames) : fieldNames.join(',');
         const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+
         downloadCSV(csv, filename);
         successCount++;
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (err) {
         console.error(`Failed to export ${entity.name}:`, err);
         failCount++;
       }
     }
+
     setIsBatchExporting(false);
+
     if (failCount === 0) {
       toast.success('Batch export complete', {
-        description: `${successCount} ${successCount !== 1 ? 'entities' : 'entity'} exported successfully`,
+        description: `${successCount} ${successCount !== 1 ? 'entities' : 'entity'} exported successfully.`,
       });
     } else {
       toast.warning('Batch export completed with errors', {
-        description: `${successCount} succeeded, ${failCount} failed`,
+        description: `${successCount} succeeded, ${failCount} failed.`,
       });
     }
+
     setSelectedIds(new Set());
   };
+
   const selectedCount = selectedIds.size;
   const allSelected = entities.length > 0 && selectedIds.size === entities.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < entities.length;
+
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+      <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="rounded-[1.5rem] border border-destructive/20 bg-destructive/5 p-5">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+            <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800">Failed to load entities</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
-              <button
-                onClick={refetch}
-                className="mt-3 text-sm font-medium text-red-800 hover:text-red-900 underline"
-              >
+              <h3 className="text-sm font-medium text-destructive">Failed to load entities</h3>
+              <p className="mt-1 text-sm text-destructive/80">{error}</p>
+              <button onClick={refetch} className="mt-3 text-sm font-medium text-destructive underline">
                 Try again
               </button>
             </div>
@@ -123,90 +136,90 @@ export function EntityBrowser() {
       </div>
     );
   }
+
   return (
     <>
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="mx-auto max-w-7xl px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Data Service</span>
                 <span>/</span>
                 <span>Entities</span>
               </div>
-              <h1 className="text-2xl font-semibold text-gray-900">Data Fabric Entities</h1>
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-[#182126]">Data Fabric Entities</h1>
             </div>
           </div>
-          <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
+
+          <div className="flex flex-col gap-4 rounded-[1.5rem] border border-[#182126]/10 bg-white/90 px-5 py-4 shadow-soft sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 {selectedCount > 0 ? (
                   <>
-                    <span className="font-medium text-gray-900">{selectedCount}</span> selected
+                    <span className="font-semibold text-[#182126]">{selectedCount}</span> selected
                   </>
                 ) : (
                   <>
-                    <span className="font-medium text-gray-900">{entities.length}</span> {entities.length !== 1 ? 'entities' : 'entity'}
+                    <span className="font-semibold text-[#182126]">{entities.length}</span> {entities.length !== 1 ? 'entities' : 'entity'}
                   </>
                 )}
               </span>
             </div>
+
             <button
               onClick={exportSelected}
               disabled={selectedCount === 0 || isBatchExporting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#fa4616] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e33d10] focus:outline-none focus:ring-2 focus:ring-[#fa4616] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#d9d9d9]"
             >
               {isBatchExporting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Exporting...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
-                  <span>Export Selected</span>
+                  <Download className="h-4 w-4" />
+                  <span>Export selected</span>
                 </>
               )}
             </button>
           </div>
+
           {isLoading ? (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="overflow-hidden rounded-[1.5rem] border border-[#182126]/10 bg-white/90 shadow-soft">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-[#182126]/10">
+                  <thead className="bg-[#f4fbfd]">
                     <tr>
                       <th className="w-12 px-3 py-3 text-left">
-                        <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-4 w-4 animate-pulse rounded bg-[#d9d9d9]" />
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entity Name</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Fields</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Entity Name</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Description</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Fields</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[...Array(5)].map((_, i) => (
-                      <tr key={i}>
+                  <tbody className="divide-y divide-[#182126]/10 bg-white">
+                    {[...Array(5)].map((_, index) => (
+                      <tr key={index}>
                         <td className="px-3 py-3">
-                          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+                          <div className="h-4 w-4 animate-pulse rounded bg-[#d9d9d9]" />
                         </td>
                         <td className="px-3 py-3">
-                          <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+                          <div className="h-4 w-32 animate-pulse rounded bg-[#d9d9d9]" />
                         </td>
                         <td className="px-3 py-3">
-                          <div className="h-4 bg-gray-200 rounded animate-pulse w-48" />
+                          <div className="h-4 w-48 animate-pulse rounded bg-[#d9d9d9]" />
                         </td>
                         <td className="px-3 py-3 text-right">
-                          <div className="h-4 bg-gray-200 rounded animate-pulse w-12 ml-auto" />
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <div className="h-4 bg-gray-200 rounded animate-pulse w-8 ml-auto" />
+                          <div className="ml-auto h-4 w-8 animate-pulse rounded bg-[#d9d9d9]" />
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            <div className="w-8 h-8 bg-gray-200 rounded animate-pulse" />
-                            <div className="w-8 h-8 bg-gray-200 rounded animate-pulse" />
+                            <div className="h-8 w-8 animate-pulse rounded-full bg-[#d9d9d9]" />
+                            <div className="h-8 w-8 animate-pulse rounded-full bg-[#d9d9d9]" />
                           </div>
                         </td>
                       </tr>
@@ -216,94 +229,84 @@ export function EntityBrowser() {
               </div>
             </div>
           ) : entities.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-lg p-12">
-              <div className="text-center space-y-3">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto" />
-                <h3 className="text-sm font-medium text-gray-900">No entities found</h3>
-                <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            <div className="rounded-[1.5rem] border border-[#182126]/10 bg-white/90 p-12 shadow-soft">
+              <div className="space-y-3 text-center">
+                <FileText className="mx-auto h-12 w-12 text-[#0ba2b3]" />
+                <h3 className="text-sm font-medium text-[#182126]">No entities found</h3>
+                <p className="mx-auto max-w-sm text-sm text-muted-foreground">
                   No Data Fabric entities are available in this tenant. Create entities in Data Service to get started.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="overflow-hidden rounded-[1.5rem] border border-[#182126]/10 bg-white/90 shadow-soft">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-[#182126]/10">
+                  <thead className="bg-[#f4fbfd]">
                     <tr>
                       <th className="w-12 px-3 py-3 text-left">
                         <input
                           type="checkbox"
                           checked={allSelected}
-                          ref={input => {
-                            if (input) input.indeterminate = someSelected;
+                          ref={(input) => {
+                            if (input) {
+                              input.indeterminate = someSelected;
+                            }
                           }}
                           onChange={toggleSelectAll}
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-offset-0 cursor-pointer"
+                          className="h-4 w-4 cursor-pointer rounded border-[#d9d9d9] text-[#fa4616] focus:ring-2 focus:ring-[#fa4616] focus:ring-offset-0"
                         />
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entity Name</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Fields</th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Entity Name</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Description</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Fields</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em] text-[#1e6482]">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {entities.map(entity => {
+                  <tbody className="divide-y divide-[#182126]/10 bg-white">
+                    {entities.map((entity) => {
                       const isSelected = selectedIds.has(entity.id);
                       const isExporting = exportingIds.has(entity.id);
                       const fieldCount = entity.fields?.length || 0;
+
                       return (
-                        <tr
-                          key={entity.id}
-                          className={`hover:bg-gray-50 transition-colors ${
-                            isSelected ? 'bg-blue-50' : ''
-                          }`}
-                        >
+                        <tr key={entity.id} className={isSelected ? 'bg-[#fff4ef]' : 'transition-colors hover:bg-[#f9fbfc]'}>
                           <td className="px-3 py-3">
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelection(entity.id)}
-                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-offset-0 cursor-pointer"
+                              className="h-4 w-4 cursor-pointer rounded border-[#d9d9d9] text-[#fa4616] focus:ring-2 focus:ring-[#fa4616] focus:ring-offset-0"
                             />
                           </td>
                           <td className="px-3 py-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {entity.displayName || entity.name}
-                            </div>
+                            <div className="text-sm font-medium text-[#182126]">{entity.displayName || entity.name}</div>
                           </td>
                           <td className="px-3 py-3">
-                            <div className="text-sm text-gray-600 max-w-md truncate">
-                              {entity.description || '—'}
-                            </div>
+                            <div className="max-w-md truncate text-sm text-muted-foreground">{entity.description || '-'}</div>
                           </td>
                           <td className="px-3 py-3 text-right">
-                            <div className="text-sm text-gray-700 tabular-nums">—</div>
-                          </td>
-                          <td className="px-3 py-3 text-right">
-                            <div className="text-sm text-gray-500 tabular-nums">{fieldCount}</div>
+                            <div className="text-sm tabular-nums text-muted-foreground">{fieldCount}</div>
                           </td>
                           <td className="px-3 py-3">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => setPreviewEntity(entity)}
-                                className="p-2 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                                className="rounded-full p-2 transition-colors hover:bg-[#ccf2ff]/50 focus:outline-none focus:ring-2 focus:ring-[#0ba2b3] focus:ring-offset-0"
                                 title="Preview entity"
                               >
-                                <Eye className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                                <Eye className="h-4 w-4 text-[#0ba2b3]" />
                               </button>
                               <button
                                 onClick={() => exportEntity(entity)}
                                 disabled={isExporting}
-                                className="p-2 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="rounded-full p-2 transition-colors hover:bg-[#fff4ef] focus:outline-none focus:ring-2 focus:ring-[#fa4616] focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
                                 title="Export to CSV"
                               >
                                 {isExporting ? (
-                                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#fa4616]" />
                                 ) : (
-                                  <Download className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                                  <Download className="h-4 w-4 text-[#fa4616]" />
                                 )}
                               </button>
                             </div>
@@ -318,12 +321,8 @@ export function EntityBrowser() {
           )}
         </div>
       </div>
-      {previewEntity && (
-        <EntityPreviewModal
-          entity={previewEntity}
-          onClose={() => setPreviewEntity(null)}
-        />
-      )}
+
+      {previewEntity ? <EntityPreviewModal entity={previewEntity} onClose={() => setPreviewEntity(null)} /> : null}
       <Toaster richColors closeButton position="top-right" />
     </>
   );
