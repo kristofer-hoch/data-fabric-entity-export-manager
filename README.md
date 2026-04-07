@@ -78,6 +78,7 @@ VITE_UIPATH_SCOPE=DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Wr
 3. Click **Add Application** and select **Confidential Application**
 4. Set the redirect URI to match your development URL (e.g., `http://localhost:3000`)
 5. Grant the following scopes:
+   - `OR.Execution` - Execute from Orchestrator (ONLY If deployed to Orchestrator)
    - `DataFabric.Schema.Read` - Read entity schemas
    - `DataFabric.Data.Read` - Read entity records
    - `DataFabric.Data.Write` - Write entity records
