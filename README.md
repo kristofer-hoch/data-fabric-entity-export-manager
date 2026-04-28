@@ -75,7 +75,7 @@ VITE_UIPATH_SCOPE=DataFabric.Schema.Read DataFabric.Data.Read DataFabric.Data.Wr
 
 1. Log in to [UiPath Cloud](https://cloud.uipath.com)
 2. Navigate to **Admin** → **External Applications**
-3. Click **Add Application** and select **Confidential Application**
+3. Click **Add Application** and select **Non-Confidential Application**
 4. Set the redirect URI to match your development URL (e.g., `http://localhost:3000`)
 5. Grant the following scopes:
    - `OR.Execution` - Execute from Orchestrator (ONLY If deployed to Orchestrator)
