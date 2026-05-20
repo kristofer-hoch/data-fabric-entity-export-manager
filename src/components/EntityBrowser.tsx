@@ -14,6 +14,20 @@ export function EntityBrowser() {
   const [exportingIds, setExportingIds] = useState<Set<string>>(new Set());
   const [isBatchExporting, setIsBatchExporting] = useState(false);
 
+  const getAllEntityRecords = async (entity: EntityGetResponse) => {
+    const records = [];
+    let result = await entity.getAllRecords({ pageSize: 500 });
+
+    records.push(...(result.items || []));
+
+    while (result.hasNextPage && result.nextCursor) {
+      result = await entity.getAllRecords({ cursor: result.nextCursor });
+      records.push(...(result.items || []));
+    }
+
+    return records;
+  };
+
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -39,8 +53,7 @@ export function EntityBrowser() {
     setExportingIds((prev) => new Set(prev).add(entity.id));
 
     try {
-      const result = await entity.getAllRecords();
-      const records = result.items || [];
+      const records = await getAllEntityRecords(entity);
       const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
 
       if (records.length === 0) {
@@ -84,8 +97,7 @@ export function EntityBrowser() {
 
     for (const entity of selectedEntities) {
       try {
-        const result = await entity.getAllRecords();
-        const records = result.items || [];
+        const records = await getAllEntityRecords(entity);
         const fieldNames = entity.fields?.map((field) => field.name) || [];
         const csv = records.length > 0 ? convertToCSV(records, fieldNames) : fieldNames.join(',');
         const filename = `${entity.name}_${format(new Date(), 'yyyy-MM-dd')}.csv`;

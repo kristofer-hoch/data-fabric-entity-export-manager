@@ -2,6 +2,8 @@
 
 A professional enterprise application for UiPath Data Fabric that enables users to browse, select, and export entity data to CSV files. Built with React, TypeScript, and the UiPath SDK, this tool provides a clean, table-based interface for discovering available entities, previewing their schemas and records, selecting multiple entities for batch export, and downloading individual or combined CSV files.
 
+See [RELEASENOTES.md](./RELEASENOTES.md) for version history and recent changes.
+
 ## Features
 
 - **Entity Browser**: View all available Data Fabric entities in a clean, information-dense table layout
