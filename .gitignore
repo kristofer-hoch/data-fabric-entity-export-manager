@@ -2,8 +2,6 @@
 # Bootstrap marker
 .bootstrap-complete
 node_modules
-dist/
-dist-electron/
 release/
 prompts/
 
